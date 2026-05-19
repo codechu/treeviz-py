@@ -1,13 +1,14 @@
 """Visualization Strategy ABC.
 
-Treemap ve Sunburst aynı arayüzü implement eder; UI sekme geçerken yalnızca
-``VizStrategy`` örneğini değiştirir. Yeni bir görselleştirme (icicle, flame
-graph, ...) ``VizStrategy`` alt sınıfı olarak eklenebilir.
+Treemap and Sunburst implement the same interface; when the UI switches
+tabs it only swaps the :class:`VizStrategy` instance. A new visualization
+(icicle, flame graph, ...) can be added as a :class:`VizStrategy`
+subclass.
 
-Şu an ``layout`` ve ``hit_test`` zorunlu (saf logic, viz alt paketinde).
-``draw`` opsiyonel — mevcut implementasyonlar cairo çizimini UI panel'inde
-yapıyor (animasyon + hover state ile iç içe). Faz G'de panel
-``strategy.draw`` çağrısına bağlanacak.
+For now ``layout`` and ``hit_test`` are mandatory (pure logic, lives in
+this subpackage). ``draw`` is optional — current implementations do the
+cairo drawing in the UI panel (intertwined with animation + hover state).
+In Phase G the panel will delegate to ``strategy.draw``.
 """
 from __future__ import annotations
 
@@ -21,17 +22,17 @@ if TYPE_CHECKING:
 
 
 class VizStrategy(ABC):
-    """Görselleştirme stratejisi — layout + hit-test (zorunlu), draw (ops.)."""
+    """Visualization strategy — layout + hit-test (mandatory), draw (optional)."""
 
     name: str = "unknown"
 
     @abstractmethod
     def layout(self, node: "TreeNode", w: float, h: float) -> None:
-        """Verilen kanvas boyutunda recursive layout hesapla, node'lara yaz."""
+        """Compute recursive layout for the given canvas and write it onto the nodes."""
 
     @abstractmethod
     def hit_test(self, node: "TreeNode", x: float, y: float) -> Optional["TreeNode"]:
-        """``(x, y)``'nin altındaki node'u bul (yoksa None)."""
+        """Find the node at ``(x, y)`` (None if there isn't one)."""
 
     def draw(
         self,
@@ -41,11 +42,11 @@ class VizStrategy(ABC):
         hover: Optional["TreeNode"] = None,
         dark: bool = False,
     ) -> None:
-        """Cairo context'e çiz.
+        """Draw onto a cairo context.
 
-        Default implementation şu anda UI panel'i bu işi yapıyor diye
-        ``NotImplementedError`` fırlatır. Strategy doğrudan kullanmak için
-        alt sınıfta override edin.
+        The default implementation raises ``NotImplementedError`` because
+        the UI panel currently performs this work. Override in a subclass
+        to use a strategy directly.
         """
         raise NotImplementedError(
             f"{type(self).__name__}.draw is not on the strategy yet — "

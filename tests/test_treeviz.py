@@ -1,4 +1,4 @@
-"""Viz katmanı — TreeNode, treemap layout, sunburst layout, hit_test, renkler."""
+"""Viz layer — TreeNode, treemap layout, sunburst layout, hit_test, colors."""
 from __future__ import annotations
 
 import math
@@ -39,7 +39,7 @@ def test_build_tree_simple(tmp_path):
     assert tree is not None
     assert tree.is_dir
     assert tree.size > 0
-    # Çocuklar boyuta göre azalan
+    # Children sorted by descending size
     if len(tree.children) >= 2:
         for a, b in zip(tree.children, tree.children[1:]):
             assert a.size >= b.size
@@ -64,7 +64,7 @@ def test_layout_treemap_sets_rects():
 
 
 def test_layout_treemap_small_grouped_in_other():
-    # Bir sürü küçük + bir büyük → küçükler tek 'Diğer'
+    # Lots of small + one big → smalls collapse into a single "Other"
     sizes = {f"x{i}": 1 for i in range(10)}
     sizes["big"] = 1000
     root = _mk_tree(sizes)
@@ -73,10 +73,31 @@ def test_layout_treemap_small_grouped_in_other():
     assert len(others) == 1
 
 
+def test_layout_treemap_other_bundle_metadata():
+    """The Other bundle exposes is_other + small_count, no embedded label."""
+    sizes = {f"x{i}": 1 for i in range(10)}
+    sizes["big"] = 1000
+    root = _mk_tree(sizes)
+    layout_treemap(root, 0, 0, 200, 200)
+    others = [c for c in root.children if c.is_other]
+    assert len(others) == 1
+    other = others[0]
+    # Sentinel path/name only — no user-facing "(N items)" string.
+    assert other.path == OTHER_MARKER
+    # 10 small items were aggregated.
+    assert other.small_count == 10
+    # Non-Other children must not carry the flag/count.
+    for c in root.children:
+        if c is other:
+            continue
+        assert c.is_other is False
+        assert c.small_count == 0
+
+
 def test_treemap_hit_test_finds_child():
     root = _mk_tree({"a": 600, "b": 400})
     layout_treemap(root, 0, 0, 100, 100)
-    # 'a' büyük, sol sütun
+    # 'a' is the big one, left column
     a = root.children[0]
     cx = a.rect[0] + a.rect[2] / 2
     cy = a.rect[1] + a.rect[3] / 2
@@ -110,7 +131,7 @@ def test_layout_sunburst_sets_polar_rect():
 def test_sunburst_hit_test_center_is_root():
     root = _mk_tree({"a": 500, "b": 500})
     layout_sunburst(root, cx=100, cy=100, r_inner=10, r_step=30, max_depth=2)
-    # Halka içine bir nokta seç (r_inner + 5)
+    # Pick a point inside the ring (r_inner + 5)
     hit = sunburst_hit_test(root, 115, 100)
     assert hit is not None
 
@@ -135,7 +156,7 @@ def test_node_color_returns_rgb():
 def test_node_color_dark_is_dimmer():
     light = node_color(0, 0, dark=False)
     dark = node_color(0, 0, dark=True)
-    # Dark mode genelde daha düşük lightness/sat
+    # Dark mode generally has lower lightness/saturation
     assert sum(dark) <= sum(light)
 
 
