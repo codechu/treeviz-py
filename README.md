@@ -1,12 +1,17 @@
 ```text
-   ┌──────────────────────┬───────────────┬─────────┐
-   │  codechu-treeviz     │  ┌─────────┐  │  ┌───┐  │
-   │  ┌────────┬───────┐  │  │ photos  │  │  │ . │  │
-   │  │ videos │ music │  │  ├────┬────┤  │  └───┘  │
-   │  ├────────┴───────┤  │  │ .. │ .. │  │ cache   │
-   │  │   documents    │  │  └────┴────┘  │         │
-   │  └────────────────┘  │   pictures    │  logs   │
-   └──────────────────────┴───────────────┴─────────┘
+━━━━━━━━━━ c o d e c h u  ·  t r e e v i z ━━━━━━━━━━
+
+      input                              output
+   ┌────────────────────┐           ┌────────────────────┐
+   │ /                  │           │ ┌─────────┬──────┐ │
+   │ ├── photos  (450)  │    →      │ │ photos  │ src  │ │
+   │ ├── src     (200)  │   layout  │ ├─────────┴──────┤ │
+   │ ├── cache   (180)  │           │ │  cache  │ logs │ │
+   │ └── logs    (120)  │           │ ├─────────┴──────┤ │
+   └────────────────────┘           │ └────────────────┘ │
+                                     per-node (x, y, w, h)
+
+━━━━━━━━━ rectangles and arcs. you render. ━━━━━━━━━━
 ```
 
 [![PyPI](https://img.shields.io/pypi/v/codechu-treeviz.svg)](https://pypi.org/project/codechu-treeviz/)
@@ -22,18 +27,6 @@ Squarified treemap and sunburst layout algorithms for hierarchical
 data. Pure Python, no GUI dependency — gives you rectangles and arcs
 and lets you render them with whatever toolkit you prefer (Cairo,
 SVG, Matplotlib, browser canvas, Pillow PNG).
-
-```text
-            input                            output
-   ┌────────────────────┐         ┌────────────────────┐
-   │ /                  │         │ ┌─────────┬──────┐ │
-   │ ├── photos  (450)  │   →     │ │ photos  │ src  │ │
-   │ ├── src     (200)  │ layout  │ ├─────────┴──────┤ │
-   │ ├── cache   (180)  │         │ │  cache  │ logs │ │
-   │ └── logs    (120)  │         │ ├─────────┴──────┤ │
-   └────────────────────┘         │ └────────────────┘ │
-                                   per-node (x, y, w, h)
-```
 
 ## Install
 
