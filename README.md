@@ -18,25 +18,32 @@
 
 # codechu-treeviz
 
-Squarified treemap + sunburst layout algorithms for hierarchical data.
-Pure Python, no GUI dependency — gives you rectangles and arcs; you
-render them with whatever toolkit (Cairo, SVG, Matplotlib, browser canvas).
+Squarified treemap and sunburst layout algorithms for hierarchical
+data. Pure Python, no GUI dependency — gives you rectangles and arcs
+and lets you render them with whatever toolkit you prefer (Cairo,
+SVG, Matplotlib, browser canvas, Pillow PNG).
+
+```text
+            input                            output
+   ┌────────────────────┐         ┌────────────────────┐
+   │ /                  │         │ ┌─────────┬──────┐ │
+   │ ├── photos  (450)  │   →     │ │ photos  │ src  │ │
+   │ ├── src     (200)  │ layout  │ ├─────────┴──────┤ │
+   │ ├── cache   (180)  │         │ │  cache  │ logs │ │
+   │ └── logs    (120)  │         │ ├─────────┴──────┤ │
+   └────────────────────┘         │ └────────────────┘ │
+                                   per-node (x, y, w, h)
+```
+
+## Install
 
 ```bash
 pip install codechu-treeviz
 ```
 
-## What it gives you
+Python 3.10+. Pure stdlib + `math`, zero third-party deps.
 
-- **Squarified treemap** layout — Bruls/Huijsen/van Wijk algorithm, aspect-ratio optimized
-- **Sunburst** layout — circular hierarchical chart with concentric rings
-- **TreeNode** builder — turn a `(path, size)` list into a hierarchical tree
-- **Hit testing** — given (x, y), find the node at that position
-- **"Other" bundling** — small slivers grouped into a single "(N items)" bucket
-- **Color palette** — perceptually balanced fill colors
-- Pure stdlib + Python `math`, zero deps
-
-## Example
+## Quick example
 
 ```python
 from codechu_treeviz import build_tree, TreemapStrategy
@@ -61,56 +68,49 @@ node = strategy.hit_test(root, x=120, y=80)
 Swap `TreemapStrategy()` for `SunburstStrategy()` and the same code
 renders a radial chart (rects become 7-tuples — see the API docs).
 
-## Documentation
+## What you get
 
-- **[docs/API.md](docs/API.md)** — full API reference (TreeNode,
-  SizeProvider, VizStrategy, layout functions, hit-test, colors)
-- **[docs/RECIPES.md](docs/RECIPES.md)** — patterns: disk-usage
-  treemap, sunburst from a directory tree, custom `SizeProvider`,
-  subclassing `VizStrategy`, hit-test plumbing
+- **Squarified treemap** — Bruls/Huijsen/van Wijk algorithm,
+  aspect-ratio optimized rectangles.
+- **Sunburst** — circular hierarchical chart with concentric rings.
+- **`TreeNode` builder** — turn a `(path, size)` list into a
+  hierarchical tree with cancel + progress callbacks.
+- **Hit testing** — find the node at any (x, y) coordinate.
+- **"Other" bundling** — collapse small slivers into one
+  `"(N items)"` bucket.
+- **Color palette** — perceptually balanced default fill colors.
 
-## Design
+No rendering, no GUI dependency, bounded depth
+(`TREEMAP_MAX_DEPTH = 40`) so pathological nesting can't OOM you.
 
-- **No rendering** — algorithms produce geometry; rendering is your job
-  (Cairo, SVG, PNG via Pillow, browser canvas via JSON over HTTP, etc.)
-- **No GUI dependency** — `import codechu_treeviz` works without GTK/Qt/Tk
-- **Cancel + progress** support in `build_tree` for long inputs
-- **Bounded depth** (`TREEMAP_MAX_DEPTH = 40`) protects against pathological nesting
+## Read more
 
-## Use cases
+- [API reference](docs/API.md) — TreeNode, SizeProvider,
+  VizStrategy, layout functions, hit-test, color helpers.
+- [Recipes](docs/RECIPES.md) — disk-usage treemap, sunburst from a
+  directory tree, custom `SizeProvider`, subclassing `VizStrategy`,
+  hit-test plumbing.
+- [Migration guide](docs/MIGRATION.md)
+- [Changelog](CHANGELOG.md)
 
-- Disk usage visualizer (the original)
-- Source-code size / dependency tree explorer
-- Package size analyzer (npm, PyPI, Cargo)
-- Time-tracking dashboard (project / task / subtask hierarchy)
-- Any "where did the bytes / hours / records go?" question
-
-## Codechu family
-
-Companion libraries from the Codechu Python ecosystem:
+## Family
 
 | Library | Purpose |
 |---------|---------|
-| [codechu-fmt](https://pypi.org/project/codechu-fmt/) | Human-readable formatting — sizes, durations, rates, percent |
-| [codechu-meter](https://pypi.org/project/codechu-meter/) | Timing primitives — Stopwatch, ETA, percentile, histogram |
-| [codechu-spark](https://pypi.org/project/codechu-spark/) | Unicode sparklines, mini bar charts, heatmaps |
-| [codechu-cli](https://pypi.org/project/codechu-cli/) | CLI primitives — colors, progress, spinners, prompts, table |
-| [codechu-events](https://pypi.org/project/codechu-events/) | Thread-safe multi-channel pub/sub bus with replay |
-| [codechu-xdg](https://pypi.org/project/codechu-xdg/) | XDG Base Directory helpers, vendor-namespaced |
-| [codechu-fs](https://pypi.org/project/codechu-fs/) | Filesystem primitives — atomic write, XDG trash, safe walk |
-| [codechu-term](https://pypi.org/project/codechu-term/) | Terminal capability detection, alt buffer, raw mode |
-| [codechu-color](https://pypi.org/project/codechu-color/) | Color palettes, WCAG contrast, color-blind variants |
 | [codechu-treedata](https://pypi.org/project/codechu-treedata/) | N-ary tree data structures and algorithms |
-| [codechu-log](https://pypi.org/project/codechu-log/) | Structured logging — context, JSON, rotation, redaction |
-| [codechu-i18n](https://pypi.org/project/codechu-i18n/) | Internationalization — locale, plural rules, RTL |
-| [codechu-ipc](https://pypi.org/project/codechu-ipc/) | Local IPC — Unix socket, FIFO, JSON-line protocol |
-| [codechu-config](https://pypi.org/project/codechu-config/) | Schema-driven config — atomic save, migrations |
+| [codechu-spark](https://pypi.org/project/codechu-spark/) | Unicode sparklines, mini bar charts, heatmaps |
+| [codechu-fmt](https://pypi.org/project/codechu-fmt/) | Human-readable sizes, durations, rates |
+| [codechu-cli](https://pypi.org/project/codechu-cli/) | CLI primitives — colors, progress, prompts |
+| [codechu-color](https://pypi.org/project/codechu-color/) | Color palettes, WCAG contrast, color-blind variants |
+
+Full ecosystem: [github.com/codechu](https://github.com/codechu).
 
 ## Credits
 
-- Squarified treemap algorithm by Bruls, Huijsen, van Wijk (2000)
-- Sunburst layout following Stasko & Zhang radial visualizations
-- Inspiration from [squarify](https://github.com/laserson/squarify) — single-algorithm; codechu-treeviz extends to 5 strategies
+- Squarified treemap algorithm by Bruls, Huijsen, van Wijk (2000).
+- Sunburst layout following Stasko & Zhang radial visualizations.
+- Inspiration from [squarify](https://github.com/laserson/squarify) —
+  single-algorithm; codechu-treeviz extends to multiple strategies.
 
 ## License
 
