@@ -5,13 +5,22 @@ All public names re-exported from the package root:
 ```python
 from codechu_treeviz import (
     TreeNode, SizeProvider, build_tree,
-    VizStrategy, TreemapStrategy, SunburstStrategy,
+    VizStrategy,
+    TreemapStrategy, SunburstStrategy,
+    IcicleStrategy, SliceDiceStrategy, FlameGraphStrategy,
     layout_treemap, layout_sunburst,
+    layout_icicle, layout_slicedice, layout_flamegraph,
     hit_test, sunburst_hit_test,
+    icicle_hit_test, slicedice_hit_test, flamegraph_hit_test,
     node_color, is_hash_like,
     OTHER_MARKER,
 )
 ```
+
+> Strategy implementations live in `codechu_treeviz.strategies` since
+> v0.2.0. The top-level re-exports above are the recommended import
+> path; see [`MIGRATION.md`](MIGRATION.md) for the legacy module-path
+> shims that remain supported.
 
 The library is pure logic — layouts mutate `node.rect` on the input
 tree; rendering is the caller's responsibility (Cairo, SVG, browser
@@ -161,6 +170,61 @@ bundled). `name = "sunburst"`.
 The ring step is computed from canvas size:
 `r_step = min(w, h) / (2 * (max_depth + 1))`.
 
+### `IcicleStrategy`
+
+```python
+IcicleStrategy(max_depth: int = 8)
+```
+
+Icicle plot — horizontal strips, one per depth level. The root is the
+top strip; each level below is a strip divided proportionally among
+its children's sizes. `name = "icicle"`.
+
+`rect` is a 4-tuple `(x, y, w, h)`. Row height is
+`h / (max_depth + 1)`, so deeper trees compress automatically.
+
+Useful when:
+
+- The depth of a node should be obvious at a glance (vs. treemap where
+  it's inferred from nesting).
+- Sibling order must be preserved (no axis swap, no squarify shuffle).
+
+### `SliceDiceStrategy`
+
+```python
+SliceDiceStrategy(horizontal: bool | None = None)
+```
+
+The original treemap algorithm (Shneiderman 1992): split the parent
+along one axis, alternate horizontal/vertical at each level. Children
+are sized proportionally and **drawn in their original order**.
+
+`horizontal=None` (default) picks the longer initial axis and
+alternates. `True` forces a horizontal first split; `False` a
+vertical one.
+
+`name = "slicedice"`. `rect` is a 4-tuple.
+
+Aspect ratios are worse than squarified treemap, but the layout is
+predictable — useful when ordering encodes meaning (chronology,
+alphabetical, etc.).
+
+Unlike `layout_treemap`, `layout_slicedice` lays out the **entire
+subtree** in one call.
+
+### `FlameGraphStrategy`
+
+```python
+FlameGraphStrategy(max_depth: int = 8)
+```
+
+A flame graph — icicle plot rotated 180°. The root sits at the
+**bottom** of the canvas; children stack **upward**. `name =
+"flamegraph"`. `rect` is a 4-tuple.
+
+Originally a CPU-profiling visualization, but the layout works for
+any size-weighted hierarchy.
+
 ---
 
 ## `layout_treemap(...)`
@@ -213,6 +277,55 @@ adding a confusing gray sliver.
 
 ---
 
+## `layout_icicle(...)`
+
+```python
+layout_icicle(
+    node: TreeNode,
+    x: float, y: float, w: float, h: float,
+    depth: int = 0,
+    max_depth: int = 8,
+) -> None
+```
+
+Icicle plot layout. Writes 4-tuple `(x, y, w, h)` rects recursively
+down to `max_depth` levels. The root occupies the top row of the
+canvas; each subsequent level is a strip directly below the previous
+one. Children's widths are proportional to their `size`.
+
+## `layout_slicedice(...)`
+
+```python
+layout_slicedice(
+    node: TreeNode,
+    x: float, y: float, w: float, h: float,
+    depth: int = 0,
+    horizontal: bool | None = None,
+) -> None
+```
+
+Slice-and-dice treemap. Writes 4-tuple rects across the entire
+subtree in a single call. Alternates between horizontal and vertical
+splits at each level. `horizontal=None` picks the longer initial axis
+automatically.
+
+## `layout_flamegraph(...)`
+
+```python
+layout_flamegraph(
+    node: TreeNode,
+    x: float, y: float, w: float, h: float,
+    depth: int = 0,
+    max_depth: int = 8,
+) -> None
+```
+
+Flame graph layout. Same shape as `layout_icicle` but the root is
+anchored at the **bottom** of the canvas (`y + h - row_h`) and
+children stack upward. Row height is `h / (max_depth + 1)`.
+
+---
+
 ## `hit_test(node, mx, my, depth=0)`
 
 Treemap hit-test. Single level: scans `node.children` first, falls
@@ -227,6 +340,23 @@ avoid hitting stale inner rects from drill-in/out animations.
 
 Both functions are also exposed as `strategy.hit_test(node, x, y)`
 methods so callers can swap strategies without branching.
+
+## `icicle_hit_test(node, mx, my)`
+
+Recursive depth-first hit-test over icicle rects. Children are tested
+before the parent, so clicks on deeper strips return the descendant.
+Skips nodes with non-4-tuple `rect`s.
+
+## `slicedice_hit_test(node, mx, my)`
+
+Recursive hit-test for slice-and-dice rects. Children tested first;
+returns the deepest match.
+
+## `flamegraph_hit_test(node, mx, my)`
+
+Recursive hit-test for flame graph rects. Children tested first, so
+clicks on higher stack frames return the descendant call rather than
+the root at the base.
 
 ---
 

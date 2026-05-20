@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-05-20
+
+### Added
+- `IcicleStrategy` — icicle plot (horizontal strips, one per depth level)
+- `SliceDiceStrategy` — slice-and-dice treemap (order-preserving, alternating-axis)
+- `FlameGraphStrategy` — flame graph (inverted icicle, CPU-profiling-style)
+- `strategies/` subpackage hosting every bundled `VizStrategy`
+- `docs/MIGRATION.md` — v0.1 → v0.2 notes
+
+### Changed
+- `TreemapStrategy` and `SunburstStrategy` moved into `codechu_treeviz.strategies/`.
+  Top-level imports (`from codechu_treeviz import ...`) and the legacy
+  `codechu_treeviz.treemap` / `codechu_treeviz.sunburst` module paths
+  continue to work via re-export shims — no breaking change.
+
 ## [0.1.0] — 2026-05-19
 
 ### Added

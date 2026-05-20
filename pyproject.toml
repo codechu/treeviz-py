@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codechu-treeviz"
-version = "0.1.0"
-description = "Squarified treemap + sunburst layout algorithms for hierarchical data. Pure logic, no GUI dependency."
+version = "0.2.0"
+description = "Treemap, sunburst, icicle, slice-and-dice, and flame graph layouts for hierarchical data. Pure logic, no GUI dependency."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
 authors = [{ name = "Codechu" }]
-keywords = ["treemap", "sunburst", "visualization", "hierarchical-data", "squarified"]
+keywords = ["treemap", "sunburst", "icicle", "flamegraph", "visualization", "hierarchical-data", "squarified"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

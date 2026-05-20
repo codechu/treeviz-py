@@ -134,64 +134,131 @@ layout_treemap(root, 0, 0, 800, 600)
 
 ---
 
-## 4. Adding a new visualization (subclass `VizStrategy`)
+## 4. Use `IcicleStrategy` for a time-based hierarchy
 
-The pattern: write a pure layout function, then wrap it as a strategy
-so the UI can hot-swap visualizations.
+Icicle plots make depth visually explicit — the top row is the root,
+each row below it is one level deeper. Combined with the fact that
+sibling order is preserved (no squarify shuffle), this makes the
+strategy a natural fit for hierarchies where order encodes time:
+build timelines, log spans, calendar trees, etc.
+
+```python
+from codechu_treeviz import IcicleStrategy, TreeNode
+
+# A build timeline: top-level phases, each containing tasks
+root = TreeNode("build", size=0, is_dir=True, children=[
+    TreeNode("compile", size=120, is_dir=True, children=[
+        TreeNode("frontend", size=80),
+        TreeNode("backend",  size=40),
+    ]),
+    TreeNode("test", size=90, is_dir=True, children=[
+        TreeNode("unit",        size=30),
+        TreeNode("integration", size=60),
+    ]),
+    TreeNode("package", size=20),
+])
+# Fill parent sizes from children if not already set
+def fill(n):
+    if n.children:
+        for c in n.children: fill(c)
+        n.size = sum(c.size for c in n.children) or n.size
+fill(root)
+
+strat = IcicleStrategy(max_depth=3)
+strat.layout(root, w=800.0, h=240.0)
+
+# Each node.rect is (x, y, w, h) — a horizontal strip. Render with
+# any toolkit. Reuse `node_color(top_idx, depth, dark=...)` if you
+# want a consistent palette across strategies.
+```
+
+Switch to `FlameGraphStrategy(max_depth=3)` instead if you prefer the
+root anchored at the bottom (the conventional flame graph orientation
+for profile data).
+
+---
+
+## 5. Subclass `VizStrategy` for a custom visualization
+
+The bundled strategies are reference implementations of a single
+contract:
+
+```python
+class VizStrategy(ABC):
+    name: str
+    def layout(self, node, w, h) -> None: ...
+    def hit_test(self, node, x, y) -> TreeNode | None: ...
+    def draw(self, cr, node, *, hover=None, dark=False) -> None:
+        # default raises NotImplementedError
+```
+
+To add a new visualization: write a pure layout function (writes
+`node.rect`), a hit-test that walks the tree, and wrap them in a
+subclass. The UI can then hot-swap strategies without branching on
+type.
 
 ```python
 from typing import Optional
 from codechu_treeviz import VizStrategy, TreeNode
 
-def layout_icicle(node: TreeNode, x: float, y: float,
-                  w: float, h: float, depth: int = 0,
-                  row_h: float = 24.0) -> None:
-    """Horizontal icicle: each level is a row of stacked rects."""
-    node.rect = (x, y, w, row_h)
-    if not node.children or node.size == 0 or h < row_h * 2:
+
+def layout_bars(node: TreeNode, x: float, y: float,
+                w: float, h: float, bar_h: float = 18.0,
+                gap: float = 2.0) -> None:
+    """Vertical bar chart of the top-level children only."""
+    node.rect = (x, y, w, h)
+    if not node.children or node.size == 0:
         return
-    total = sum(c.size for c in node.children) or 1
-    cx = x
+    max_size = max(c.size for c in node.children)
+    cy = y
     for c in node.children:
-        cw = w * c.size / total
-        layout_icicle(c, cx, y + row_h, cw, h - row_h, depth + 1, row_h)
-        cx += cw
+        cw = w * (c.size / max_size) if max_size else 0
+        c.rect = (x, cy, cw, bar_h)
+        cy += bar_h + gap
 
 
-def icicle_hit_test(node: TreeNode, mx: float, my: float) -> Optional[TreeNode]:
+def bars_hit_test(node: TreeNode, mx: float, my: float) -> Optional[TreeNode]:
     if node.rect is None or len(node.rect) != 4:
         return None
     for c in node.children:
-        hit = icicle_hit_test(c, mx, my)
-        if hit:
-            return hit
-    x, y, w, h = node.rect
-    if x <= mx <= x + w and y <= my <= y + h:
-        return node
-    return None
+        if c.rect is None or len(c.rect) != 4:
+            continue
+        x, y, w, h = c.rect
+        if x <= mx <= x + w and y <= my <= y + h:
+            return c
+    return node
 
 
-class IcicleStrategy(VizStrategy):
-    name = "icicle"
+class BarsStrategy(VizStrategy):
+    name = "bars"
 
-    def __init__(self, row_h: float = 24.0) -> None:
-        self.row_h = row_h
+    def __init__(self, bar_h: float = 18.0, gap: float = 2.0) -> None:
+        self.bar_h = bar_h
+        self.gap = gap
 
     def layout(self, node, w, h):
-        layout_icicle(node, 0.0, 0.0, float(w), float(h), row_h=self.row_h)
+        layout_bars(node, 0.0, 0.0, float(w), float(h),
+                    bar_h=self.bar_h, gap=self.gap)
 
     def hit_test(self, node, x, y):
-        return icicle_hit_test(node, x, y)
+        return bars_hit_test(node, x, y)
 ```
 
-Reuse `node_color(top_idx, depth, dark=...)` for consistent palettes
-across strategies. Pick a `rect` shape and stick to it — defend
-against the other shape in `hit_test` (as the bundled treemap /
-sunburst do) so stale rects from a mode switch don't crash you.
+Conventions to follow:
+
+- Pick a `rect` shape (4-tuple or 7-tuple) and stick to it. Defend
+  against the other shape in `hit_test` — return `None` instead of
+  crashing — so stale rects from a strategy switch never blow up the
+  UI. The bundled treemap/sunburst/icicle hit-tests all do this.
+- Reuse `node_color(top_idx, depth, dark=...)` if you want a palette
+  that matches the bundled strategies.
+- Override `draw(cr, node, ...)` only if your code already centralizes
+  cairo drawing; otherwise leave the default (`NotImplementedError`)
+  and draw from your UI panel like the bundled strategies do.
 
 ---
 
-## 5. Hit testing for click/hover interaction
+## 6. Hit testing for click/hover interaction
 
 The strategy methods are uniform — UI code doesn't branch on type.
 
