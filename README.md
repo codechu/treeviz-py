@@ -1,3 +1,16 @@
+```text
+   ┌──────────────────────┬───────────────┬─────────┐
+   │  codechu-treeviz     │  ┌─────────┐  │  ┌───┐  │
+   │  ┌────────┬───────┐  │  │ photos  │  │  │ . │  │
+   │  │ videos │ music │  │  ├────┬────┤  │  └───┘  │
+   │  ├────────┴───────┤  │  │ .. │ .. │  │ cache   │
+   │  │   documents    │  │  └────┴────┘  │         │
+   │  └────────────────┘  │   pictures    │  logs   │
+   └──────────────────────┴───────────────┴─────────┘
+```
+
+> *Squarified treemap + sunburst layouts — rectangles and arcs, you render.*
+
 # codechu-treeviz
 
 Squarified treemap + sunburst layout algorithms for hierarchical data.
