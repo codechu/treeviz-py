@@ -34,47 +34,35 @@ pip install codechu-treeviz
 ## Example
 
 ```python
-from codechu_treeviz import build_tree, layout_treemap, layout_sunburst, hit_test
+from codechu_treeviz import build_tree, TreemapStrategy
 
-# 1. Build a tree from flat (path, size) records
-items = [
-    ("/home/user/Documents", 5_000_000_000),
-    ("/home/user/Pictures",  2_000_000_000),
-    ("/home/user/.cache",    1_200_000_000),
-    ("/var/log",               300_000_000),
-]
-root = build_tree(items)
+# 1. Walk a directory into a TreeNode
+root = build_tree("~/Pictures")
 
-# 2. Treemap layout — produces rectangles for each node
-rects = layout_treemap(root, width=800, height=600, min_frac=0.005)
-for r in rects:
-    # r.x, r.y, r.w, r.h, r.node
-    print(r.node.label, (r.x, r.y, r.w, r.h))
+# 2. Lay it out — writes (x, y, w, h) onto every node.rect
+strategy = TreemapStrategy(min_frac=0.005)
+strategy.layout(root, w=800, h=600)
 
-# 3. Sunburst layout — produces arc segments
-arcs = layout_sunburst(root, cx=400, cy=300, max_radius=250)
-for a in arcs:
-    # a.cx, a.cy, a.r1, a.r2, a.a1, a.a2, a.node
-    print(a.node.label, "ring", a.a1, "→", a.a2)
+# 3. Render however you like (Cairo, SVG, browser canvas, …)
+for child in root.children:
+    if child.rect is not None:
+        x, y, w, h = child.rect
+        print(child.path, (x, y, w, h))
 
-# 4. Hit test
-from codechu_treeviz import hit_test
-node = hit_test(rects, x=120, y=80)  # which rect at (120,80)?
+# 4. Hit test for hover/click
+node = strategy.hit_test(root, x=120, y=80)
 ```
 
-## API surface
+Swap `TreemapStrategy()` for `SunburstStrategy()` and the same code
+renders a radial chart (rects become 7-tuples — see the API docs).
 
-| Function / class | Purpose |
-|---|---|
-| `build_tree(items, progress=None, cancel=None)` | Build TreeNode from flat (path, size) list |
-| `layout_treemap(node, width, height, min_frac=0.005)` | Squarified rect layout |
-| `layout_sunburst(node, cx, cy, max_radius, ...)` | Concentric-ring arc layout |
-| `hit_test(rects, x, y)` | Find treemap rect at coords |
-| `sunburst_hit_test(arcs, x, y, cx, cy)` | Find sunburst arc at coords |
-| `TreeNode` | Hierarchical node (children, total_size, label) |
-| `TreemapStrategy` / `SunburstStrategy` | OOP wrapper (optional, for plugin pattern) |
-| `node_color(node)` | Stable color from node identity |
-| `is_hash_like(s)` | Heuristic: is this a hash-like name (cache key vs human label) |
+## Documentation
+
+- **[docs/API.md](docs/API.md)** — full API reference (TreeNode,
+  SizeProvider, VizStrategy, layout functions, hit-test, colors)
+- **[docs/RECIPES.md](docs/RECIPES.md)** — patterns: disk-usage
+  treemap, sunburst from a directory tree, custom `SizeProvider`,
+  subclassing `VizStrategy`, hit-test plumbing
 
 ## Design
 
